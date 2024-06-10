@@ -10,6 +10,17 @@
 const int capture_point = 30;
 const int output_gesture = 7;
 
+const char* GESTURES[] = {
+    "back",
+    "down",
+    "front",
+    "left",
+    "right",
+    "flip",
+    "up",
+    "static"
+};
+
 const int buf_scale = 2;
 // buffer size = total capture data * scale
 const int total_buffer_size = capture_point * buf_scale; 
@@ -84,7 +95,7 @@ void loop() {
     // Serial.println((cur_point - last_point));
     Serial.println("There are " + String((unsigned long)(cur_point - last_point)) +  " new point since last inference");
     Serial.print("pred class : ");
-    Serial.println(c);
+    Serial.println(GESTURE[c]);
     Serial.print("infer time : ");
     Serial.print(std::chrono::duration_cast<std::chrono::microseconds>(timer.elapsed_time()).count());
     Serial.println(" (ns) \n");

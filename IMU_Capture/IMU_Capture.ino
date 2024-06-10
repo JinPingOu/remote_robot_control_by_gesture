@@ -89,10 +89,12 @@ void loop() {
         Serial.print(gZ, 3);
         Serial.println();
 
+        /*
         if (samplesRead == numSamples) {
           // add an empty line if it's the last sample
           Serial.println();
         }
+        */
       }
     }
     samplesRead = 0;

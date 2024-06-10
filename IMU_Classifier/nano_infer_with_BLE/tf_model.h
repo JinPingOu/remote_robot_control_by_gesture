@@ -41,6 +41,8 @@ class tf_model{
             }
             Serial.println();
 
+            Serial.print("tensor value: ");
+            Serial.println(max_value);
             return cls;
         }
     private:

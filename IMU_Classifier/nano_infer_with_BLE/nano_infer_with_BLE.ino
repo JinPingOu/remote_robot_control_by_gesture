@@ -17,8 +17,7 @@ const char* GESTURES[] = {
     "left",
     "right",
     "flip",
-    "up",
-    "static"
+    "up"
 };
 
 const int buf_scale = 2;
@@ -95,7 +94,7 @@ void loop() {
     // Serial.println((cur_point - last_point));
     Serial.println("There are " + String((unsigned long)(cur_point - last_point)) +  " new point since last inference");
     Serial.print("pred class : ");
-    Serial.println(GESTURE[c]);
+    Serial.println(GESTURES[c]);
     Serial.print("infer time : ");
     Serial.print(std::chrono::duration_cast<std::chrono::microseconds>(timer.elapsed_time()).count());
     Serial.println(" (ns) \n");

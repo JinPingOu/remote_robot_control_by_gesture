@@ -4,36 +4,21 @@
 #include "mbed.h"
 #include "rtos.h"
 #include "tf_model.h"
-// #include "model_data_quant.h"
+#include "config.h"
+#define DEBUG
 
-// model input
-const int capture_point = 30;
-const int output_gesture = 7;
-
-const char* GESTURES[] = {
-    "back",
-    "down",
-    "front",
-    "left",
-    "right",
-    "flip",
-    "up"
-};
-
-const int buf_scale = 2;
-// buffer size = total capture data * scale
-const int total_buffer_size = capture_point * buf_scale; 
-
-// delay time between two capture
-int capture_ms = 20;
-
+uint8_t pred_count[output_gesture + 1] = {0};
 int current_point = 0;
 uint64_t total_captured_point = 0;
+
+BLEService gestureService(deviceServiceUuid); 
+BLEByteCharacteristic gestureCharacteristic(deviceServiceCharacteristicUuid, BLERead | BLEWrite);
 
 float aX[total_buffer_size], aY[total_buffer_size], aZ[total_buffer_size]; 
 float gX[total_buffer_size], gY[total_buffer_size], gZ[total_buffer_size];
 
-rtos::Thread thread;
+rtos::Thread capture_thread;
+rtos::Thread ble_thread;
 
 // capture data thread
 void capture(){
@@ -53,21 +38,65 @@ void capture(){
     }
 }
 
+// ble connect and send
+void BLE_service(){
+    // Serial.println("BLE thread started");
+    while(1){
+        BLEDevice central = BLE.central();
+        rtos::ThisThread::sleep_for(1500);
+        if(central){
+
+            while (central.connected()) {
+                int final_pred = -1, max_value = -1;
+                for(int i=0; i <= output_gesture; i++){
+                    if(pred_count[i] > max_value)
+                        max_value = pred_count[i], final_pred = i;
+                    pred_count[i] = 0;
+                }
+
+                gestureCharacteristic.writeValue((byte)final_pred);
+                rtos::ThisThread::sleep_for(BLE_send_ms);
+            }
+                
+        }
+        rtos::ThisThread::sleep_for(1000);
+
+    }
+    
+}
+
 tf_model *t;
 void setup() {
     Serial.begin(9600);
     while (!Serial);
 
+    // IMU init
     if (!IMU.begin()) {
         Serial.println("Failed to initialize IMU!");
         while (1);
     }
-    
-    // start capute thread
-    thread.start(capture);   
-    tflite::InitializeTarget();
-    t = new tf_model(capture_point, output_gesture, 5000);
+    // BLE init
+    if (!BLE.begin()) {
+        Serial.println("- Starting Bluetooth® Low Energy module failed!");
+        while (1);
+    }
+    BLE.setLocalName("Arduino Nano 33 BLE (Peripheral)");
+    BLE.setAdvertisedService(gestureService);
+    gestureService.addCharacteristic(gestureCharacteristic);
+    BLE.addService(gestureService);
+    BLE.advertise();
 
+    Serial.print("Local address is: ");
+    Serial.println(BLE.address());
+
+    // tflm init
+    tflite::InitializeTarget();
+    t = new tf_model(capture_point*6, output_gesture, arena_size);
+
+    // start capute thread
+    capture_thread.start(capture);
+    ble_thread.start(BLE_service);   
+    
 }
 
 float data[capture_point*6];
@@ -80,26 +109,27 @@ void loop() {
     mbed::Timer timer;
     timer.start();
     for(int i=0, cur = start_point; i<capture_point; i++, cur = (cur+1) % total_buffer_size){
-        data[6*i + 0] = aX[cur];
-        data[6*i + 1] = aY[cur];
-        data[6*i + 2] = aZ[cur];
-        data[6*i + 3] = gX[cur];
-        data[6*i + 4] = gY[cur];
-        data[6*i + 5] = gZ[cur];
-    }
-    
+        data[6*i + 0] = (aX[cur] + 4.0) / 8.0;
+        data[6*i + 1] = (aY[cur] + 4.0) / 8.0;
+        data[6*i + 2] = (aZ[cur] + 4.0) / 8.0;
 
-    int c = t->infer(data);
+        data[6*i + 3] = (gX[cur] + 2000.0) / 4000.0;
+        data[6*i + 4] = (gY[cur] + 2000.0) / 4000.0;
+        data[6*i + 5] = (gZ[cur] + 2000.0) / 4000.0;
+    }
+    int pred_class = t->infer(data, threshold);
+    pred_count[pred_class]++;
     timer.stop();
-    // Serial.println((cur_point - last_point));
-    Serial.println("There are " + String((unsigned long)(cur_point - last_point)) +  " new point since last inference");
-    Serial.print("pred class : ");
-    Serial.println(GESTURES[c]);
-    Serial.print("infer time : ");
-    Serial.print(std::chrono::duration_cast<std::chrono::microseconds>(timer.elapsed_time()).count());
-    Serial.println(" (ns) \n");
-    last_point = cur_point;
+    #ifdef DEBUG
+        Serial.println("There are " + String((unsigned long)(cur_point - last_point)) +  " new point since last inference");
+        Serial.print("pred class : ");
+        Serial.println(pred_class);
+        Serial.print("infer time : ");
+        Serial.print(std::chrono::duration_cast<std::chrono::microseconds>(timer.elapsed_time()).count());
+        Serial.println(" (ns) \n");
+        rtos::ThisThread::sleep_for(infer_sleep_ms);
+        last_point = cur_point;
+    #endif
      
-    rtos::ThisThread::sleep_for(1000);
 
 }

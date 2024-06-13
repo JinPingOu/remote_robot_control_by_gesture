@@ -18,10 +18,10 @@
 // delay time between two BLE send operate
 #define BLE_send_ms 5000
 // delay time between two inference
-#define infer_sleep_ms 1000
+#define infer_sleep_ms 10
 
 // tflm setting
-#define threshold 0.8
+#define threshold 0.85
 #define arena_size 3000
 
 // BLE setting

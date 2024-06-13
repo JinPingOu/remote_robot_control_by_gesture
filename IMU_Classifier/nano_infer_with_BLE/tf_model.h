@@ -1,4 +1,4 @@
-#include "model.h"
+#include "model_data_quant.h"
 
 #include <TensorFlowLite.h>
 #include "tensorflow/lite/micro/all_ops_resolver.h"
@@ -63,8 +63,8 @@ class tf_model{
         int output_zero_point, input_zero_point;
 
         void model_init(){
-            
-            m = tflite::GetModel(_content_gesture_model_tflite);
+            m = tflite::GetModel(model);
+            //m = tflite::GetModel(_content_gesture_model_tflite);
 
             if (m->version() != TFLITE_SCHEMA_VERSION) {
                 Serial.println("Model provided is schema version not equal to supported version");

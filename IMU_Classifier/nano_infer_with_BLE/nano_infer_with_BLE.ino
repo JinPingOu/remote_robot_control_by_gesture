@@ -5,7 +5,7 @@
 #include "rtos.h"
 #include "tf_model.h"
 #include "config.h"
-#define DEBUG
+//#define DEBUG
 
 uint8_t pred_count[output_gesture + 1] = {0};
 int current_point = 0;

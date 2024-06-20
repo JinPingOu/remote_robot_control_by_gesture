@@ -4,7 +4,7 @@ import time
 # 設置串口名稱和波特率
 serial_port = 'COM5'  # 對於 Windows，可能是 'COM3' 或其他
 baud_rate = 9600
-output_file = './sample19/flip.txt'
+output_file = './sample30_g/.txt'
 
 # 打開串口
 ser = serial.Serial(serial_port, baud_rate)

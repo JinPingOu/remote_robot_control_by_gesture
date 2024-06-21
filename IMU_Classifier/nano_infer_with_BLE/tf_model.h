@@ -48,8 +48,8 @@ class tf_model{
                 if(out > _threshold && out > max_value)
                     max_value = out, cls = i;
             }
-            Serial.print("confidence: ");
-            Serial.println(max_value);
+            //Serial.print("confidence: ");
+            //Serial.println(max_value);
             #ifdef DEBUG
                 Serial.println();
             #endif
